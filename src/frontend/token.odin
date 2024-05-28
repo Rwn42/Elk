@@ -28,13 +28,16 @@ TokenType :: enum {
     Fn,
     True,
     False,
+    Import,
     Struct,
 
     Dot,
     Comma,
     SemiColon,
     Colon,
+    Hat,
     Equal,
+    Ampersand,
 
     DoubleEqual,
     NotEqual,

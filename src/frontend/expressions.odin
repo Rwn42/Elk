@@ -28,7 +28,7 @@ Elk_Unary_Expression :: struct {
 
 Operator_Token: TokenTypeSet : {
     .Dash, .DashEqual, .Dot, .DoubleEqual,
-    .Equal, .NotEqual, .Plus, .PlusEqual,
+    .Equal, .NotEqual, .Plus, .PlusEqual, .Equal,
     .Asterisk, .AsteriskEqual, .SlashForward, .SlashEqual,
     .LessThan, .LessThanEqual, .GreaterThan, .GreaterThanEqual,
 }
@@ -49,6 +49,7 @@ operator_precedence :: proc(kind: TokenType) -> Operator_Precedence {
         case .LessThan: return .LessGreater
         case .GreaterThan: return .LessGreater
         case .DoubleEqual: return .Equals
+        case .Equal: return .Equals
         case .LessThanEqual: return .LessGreater
         case .GreaterThanEqual: return .LessGreater
         case .Plus: return .Sum
@@ -77,6 +78,13 @@ parse_primary_expression :: proc(using parser: ^Parser, prec: Operator_Precedenc
         case .True,. False: expr = cast(Elk_Bool)token
         case .String: expr = cast(Elk_String)token
         case .Lparen: expr = parse_grouped(parser) or_return
+        case .Hat, .ExclamationMark, .Ampersand, .Dash: expr = parse_prefix(parser) or_return
+        case .Identifier:
+            #partial switch peek.kind {
+                case .Lparen: unimplemented("function calls")
+                case .Lbracket: unimplemented("record declarations")
+                case: expr = cast(Elk_Identifier)token
+            }
         case: {
             elk_error("Expression cannot start with %v", token.location, token.kind)
             return nil, false
@@ -120,6 +128,14 @@ parse_infix :: proc(using parser: ^Parser, lhs: Elk_Expression) -> (expr: Elk_Ex
     }
 
     return bin_expr, true
+}
+
+parse_prefix :: proc(using parser: ^Parser) -> (expr: Elk_Expression, ok: bool) {
+    un_expr := new(Elk_Unary_Expression);
+    un_expr.operator = token
+    parser_advance(parser) or_return
+    un_expr.rhs = parse_primary_expression(parser, .Prefix) or_return
+    return un_expr, true
 }
 
 line_end :: proc(tk: Token, peek: Token) -> bool {

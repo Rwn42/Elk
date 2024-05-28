@@ -67,6 +67,8 @@ lexer_next :: proc(using lexer: ^Lexer) -> (token:Token, ok: bool) {
         case '.': current_token.kind = .Dot
         case ',': current_token.kind = .Comma
         case ';': current_token.kind = .SemiColon
+        case '^': current_token.kind = .Hat
+        case '&': current_token.kind = .Ampersand
         case ':': current_token.kind = .Colon
         case '(': current_token.kind = .Lparen
         case ')': current_token.kind = .Rparen
@@ -140,6 +142,7 @@ lexer_lex_word :: proc(using lexer: ^Lexer) -> (TokenType, TokenData) {
         case "return": kind = .Return
         case "else": kind = .Else
         case "struct": kind = .Struct
+        case "import": kind = .Import
         case "for": kind = .For
         case "fn": kind = .Fn
         case "true": kind = .True

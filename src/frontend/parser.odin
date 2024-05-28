@@ -10,6 +10,8 @@ Parser :: struct {
     token: Token,
     peek: Token,
 
+    file_level_statements: [dynamic]Elk_Statement,
+
     node_allocator: runtime.Allocator,
 }
 
@@ -22,6 +24,7 @@ parser_new :: proc(lexer: ^Lexer, node_allocator: runtime.Allocator) -> (parser:
         token = token_primary, 
         peek = token_peek, 
         node_allocator = node_allocator, 
+        file_level_statements = make([dynamic]Elk_Statement, node_allocator)
     }, true
 }
 
@@ -42,12 +45,14 @@ parser_assert :: proc(using parser: ^Parser, expected: ..TokenType) ->  bool{
     return true
 }   
 
-parser_assert_return :: proc(using parser: ^Parser, expected: TokenType) -> (Token, bool) {
-    tk := token 
 
-    if tk.kind != expected do return {}, false
-
-    if parser_advance(parser) == false do return {}, false
-
-    return tk, true
+parse :: proc(using parser: ^Parser) -> bool {
+    for parser.token.kind != .EOF {
+        stmt, stmt_ok := parse_statement(parser)
+        if !stmt_ok {
+            return false //TODO: try and parse another statement so multiple errors can be caught
+        }
+        append(&file_level_statements, stmt)
+    }
+    return true
 }
