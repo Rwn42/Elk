@@ -29,6 +29,8 @@ TokenType :: enum {
     True,
     False,
     Import,
+    In,
+    Alias,
     Struct,
 
     Dot,

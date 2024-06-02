@@ -145,6 +145,8 @@ lexer_lex_word :: proc(using lexer: ^Lexer) -> (TokenType, TokenData) {
         case "import": kind = .Import
         case "for": kind = .For
         case "fn": kind = .Fn
+        case "alias": kind = .Alias
+        case "in": kind = .In
         case "true": kind = .True
         case "false": kind = .False
     }

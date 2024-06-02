@@ -6,6 +6,7 @@ Elk_Statement :: union {
     ^Elk_Variable_Declaration,
     ^Elk_Function_Declaration,
     ^Elk_Struct_Declaration,
+    ^Elk_Type_Alias,
     ^Elk_Import,
     Elk_Return,
     Elk_Expression,
@@ -24,6 +25,11 @@ Elk_Function_Declaration :: struct {
     return_type: Maybe(Elk_Type_Node),
     params: []Identifer_Type_Pair,
     body: []Elk_Statement,
+}
+
+Elk_Type_Alias :: struct {
+    name: Token,
+    type: Elk_Type_Node,
 }
 
 Elk_Struct_Declaration :: struct {
@@ -60,9 +66,10 @@ parse_statement :: proc(using parser: ^Parser) -> (stmt: Elk_Statement, ok: bool
             parser_assert(parser, token.kind, .Colon) or_return
             #partial switch token.kind {
                 case .Equal: return parse_var_decl(parser, initial, nil)
-                case .Fn: return parse_function(parser, initial) //TODO what if declaring func type?
+                case .Fn: return parse_function(parser, initial)
                 case .Import: return parse_import(parser, initial)
                 case .Struct: return parse_struct_decl(parser, initial)
+                case .Alias: return parse_type_alias(parser, initial)
                 case: return parse_var_decl(parser, initial, parse_type(parser) or_return)
             }
         case .If: unimplemented("if statements not implemented")
@@ -124,6 +131,14 @@ parse_var_decl :: proc(using parser: ^Parser, name: Token, type: Maybe(Elk_Type_
     return var_decl, true
 }
 
+parse_type_alias :: proc(using parser: ^Parser, name: Token) -> (stmt: Elk_Statement, ok: bool) {
+    alias := new(Elk_Type_Alias, parser.node_allocator)
+    parser_assert(parser, token.kind, .Equal) or_return
+    alias.name = name
+    alias.type = parse_type(parser) or_return
+    return alias, true
+}
+
 parse_struct_decl :: proc(using parser: ^Parser, name: Token) -> (stmt: Elk_Statement, ok: bool) {
     struct_decl := new(Elk_Struct_Declaration, parser.node_allocator)
     struct_decl.name = name
@@ -172,4 +187,14 @@ parse_function :: proc(using parser: ^Parser, name: Token) -> (stmt: Elk_Stateme
     func_decl.body = body_builder[:]
 
     return func_decl, true
+}
+
+symbol_name :: proc(stmt: Elk_Statement) -> string {
+    #partial switch value in stmt {
+        case ^Elk_Function_Declaration: return value.name.data.(string)
+        case ^Elk_Struct_Declaration: return value.name.data.(string)
+        case ^Elk_Type_Alias: return value.name.data.(string)
+        case ^Elk_Variable_Declaration: return value.name.data.(string)
+        case: panic("Cannot get symbol name for statement type")
+    }
 }

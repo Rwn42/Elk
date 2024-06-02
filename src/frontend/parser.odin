@@ -48,11 +48,11 @@ parser_assert :: proc(using parser: ^Parser, expected: ..TokenType) ->  bool{
 
 parse :: proc(using parser: ^Parser) -> bool {
     for parser.token.kind != .EOF {
-        stmt, stmt_ok := parse_statement(parser)
-        if !stmt_ok {
-            return false //TODO: try and parse another statement so multiple errors can be caught
-        }
-        append(&file_level_statements, stmt)
+        if stmt, stmt_ok := parse_statement(parser); stmt_ok {
+            append(&file_level_statements, stmt)
+        }else {
+            return false
+        } 
     }
     return true
 }
