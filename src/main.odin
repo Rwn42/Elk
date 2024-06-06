@@ -37,6 +37,7 @@ compile_file :: proc(filepath: string, sm: ^frontend.String_Manager) -> bool {
     //prepare frontend
     file_arena: virtual.Arena
     _ = virtual.arena_init_growing(&file_arena)
+
     defer free_all(virtual.arena_allocator(&file_arena))
 
     file_allocator := virtual.arena_allocator(&file_arena)
@@ -49,32 +50,11 @@ compile_file :: proc(filepath: string, sm: ^frontend.String_Manager) -> bool {
     frontend.parse(&parser) or_return
 
     //eventually imports here
-    ir_context := backend.IR_Context{
-        allocator = file_allocator,
-        symbol_stack = backend.Symbol_Stack{
-            sp = 0,
-            allocator = file_allocator,
-        }
-    }
+    ir_context := backend.IR_Context{}
 
-    ok = backend.context_create_file_ir(&ir_context, parser.file_level_statements[:])
+    ok = backend.ctx_create_global_context(&ir_context, parser.file_level_statements[:])
 
     if !ok do panic("backend err")
-
-
-    //global scope need not follow any logical order so we need to know what declarations to expect
-    // ir_generator := backend.IR_Generator{
-    //     allocator = file_allocator,
-    //     user_defined_types = make([dynamic]backend.Type_Info, file_allocator),
-    //     scopes = backend.Scope_Stack{
-    //         sp = 0,
-    //         allocator = file_allocator
-    //     },
-    //     program = make([dynamic]backend.Instruction, file_allocator)
-    // }
-
-
-    
 
     return true
 }
