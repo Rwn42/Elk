@@ -169,7 +169,7 @@ parse_function :: proc(using parser: ^Parser, name: Token) -> (stmt: Elk_Stateme
 
     parser_assert(parser, token.kind, .Lparen) or_return
 
-    func_decl.params = parse_id_type_pair(parser, .Rparen) or_return
+    if token.kind != .Rparen do func_decl.params = parse_id_type_pair(parser, .Rparen) or_return
 
     parser_assert(parser, .Rparen) or_return
     func_decl.return_type = token.kind == .Equal ? nil : parse_type(parser) or_return

@@ -68,6 +68,7 @@ parse_expression :: proc(using parser: ^Parser) -> (expr: Elk_Expression, ok: bo
         elk_error("Unexpected Token %v, Expected newline or ;",peek.location, peek.kind)
         return expr, false
     }
+    if peek.kind == .SemiColon do parser_advance(parser) or_return
     parser_advance(parser) or_return
     return expr, true
 }
@@ -139,6 +140,6 @@ parse_prefix :: proc(using parser: ^Parser) -> (expr: Elk_Expression, ok: bool) 
 }
 
 line_end :: proc(tk: Token, peek: Token) -> bool {
-    return peek.location.row > tk.location.row || peek.kind == .EOF
+    return peek.location.row > tk.location.row || peek.kind == .EOF || peek.kind == .SemiColon
 }
 

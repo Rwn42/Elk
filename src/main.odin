@@ -50,9 +50,23 @@ compile_file :: proc(filepath: string, sm: ^frontend.String_Manager) -> bool {
     frontend.parse(&parser) or_return
 
     //eventually imports here
-    ir_context := backend.IR_Context{}
+    scope_manager := backend.Scope_Manager{}
+    ir_context := backend.IR_Context{sm = &scope_manager}
 
-    ok = backend.ctx_create_global_context(&ir_context, parser.file_level_statements[:])
+    ok = backend.setup_ir_state(&ir_context, parser.file_level_statements[:])
+
+    for stmt in parser.file_level_statements[:] {
+        if func, ok := stmt.(^frontend.Elk_Function_Declaration); ok {
+            for body_stmt in func.body {
+                ok := backend.ctx_generate_stmt(&ir_context, body_stmt)
+                if !ok do panic("backend err")
+            }
+        }
+    }
+
+    for inst in ir_context.program{
+        fmt.println(inst)
+    }
 
     if !ok do panic("backend err")
 
