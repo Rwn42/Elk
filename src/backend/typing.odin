@@ -3,6 +3,7 @@ package backend
 import fe"../frontend"
 
 import "core:slice"
+import "core:strconv"
 
 WORD_SIZE :: 8
 
@@ -28,7 +29,7 @@ Type_Info_Untyped_Int :: struct{}
 Type_Info_Real :: struct  {}
 Type_Info_Bool :: struct {}
 Type_Info_Byte :: struct {}
-Type_Info_Array :: struct {element_type: ^Type_Info}
+Type_Info_Array :: struct {element_type: ^Type_Info, length: int}
 Type_Info_Slice :: struct {element_type: ^Type_Info}
 Type_Info_Pointer :: struct {element_type: ^Type_Info}
 Type_Info_Func :: struct {
@@ -48,6 +49,7 @@ get_type_info :: proc(using sm: ^Scope_Manager, node: fe.Elk_Type_Node) -> (info
             info := new(Type_Info)
             info.data = Type_Info_Pointer{element_type = get_type_info(sm, value.pointing_to) or_return}
             info.size = WORD_SIZE
+            return info, true
         case fe.Elk_Basic_Type:
             name := value.data.?
             symbol := scope_find_mut(sm, name) or_return
@@ -66,8 +68,24 @@ get_type_info :: proc(using sm: ^Scope_Manager, node: fe.Elk_Type_Node) -> (info
                 return {}, false
             }
             return type_info, true
+        case ^fe.Elk_Array_type: {
+            info := new(Type_Info)
+            //TODO expressions for array length
+            length, ok := strconv.parse_int(value.length_token.data.?)
+            element_type := get_type_info(sm, value.backing_type) or_return
+            assert(ok, "wrong token for array length")
+            info.data = Type_Info_Array{element_type, length}
+            info.size = element_type.size * length
+            return info, true
+        }
+        case ^fe.Elk_Slice_Type:
+            info := new(Type_Info)
+            element_type := get_type_info(sm, value.backing_type) or_return
+            info.data = Type_Info_Slice{element_type = element_type}
+            info.size = 16
+            return info, true
     }
-    unreachable()
+    panic("Unreachable")
 }
 
 resolve_global_type :: proc(using sm: ^Scope_Manager, name: string) -> bool {
@@ -188,4 +206,5 @@ add_builtin_types_to_scope :: proc(sm: ^Scope_Manager) {
             element_type = &byte_symbol.data.(Type_Info)
         },
     }}
+    _ = scope_register_symbol(sm, string_builtin, "string")
 }

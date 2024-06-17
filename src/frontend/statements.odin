@@ -45,12 +45,23 @@ Elk_Import :: struct {
 Elk_Type_Node :: union {
     ^Elk_Pointer_Type,
     Elk_Basic_Type,
+    ^Elk_Array_type,
+    ^Elk_Slice_Type,
 }
 
 Elk_Basic_Type :: distinct Token
 
 Elk_Pointer_Type :: struct {
     pointing_to: Elk_Type_Node
+}
+
+Elk_Slice_Type :: struct {
+    backing_type: Elk_Type_Node,
+}
+
+Elk_Array_type :: struct {
+    length_token: Token,
+    backing_type: Elk_Type_Node,
 }
 
 Identifer_Type_Pair :: struct {
@@ -94,7 +105,23 @@ parse_type :: proc(using parser: ^Parser) -> (typ: Elk_Type_Node, ok: bool) {
             pointer_type := new(Elk_Pointer_Type, node_allocator)
             pointer_type.pointing_to = parse_type(parser) or_return
             return pointer_type, true
-        case .Lbracket: unimplemented("array/slice types")
+        case .Lbracket:
+            //slice
+            if token.kind == .Rbracket {
+                parser_advance(parser) or_return
+                slice_type := new(Elk_Slice_Type, node_allocator)
+                slice_type.backing_type = parse_type(parser) or_return
+                return slice_type, true
+            }
+            //fixed array
+            array_type := new(Elk_Array_type, node_allocator)
+            if token.kind != .Number {
+                panic("arrays with out number literal length unimplemented")
+            }
+            array_type.length_token = token
+            parser_assert(parser, token.kind, .Rbracket)
+            array_type.backing_type = parse_type(parser) or_return
+            return array_type, true
         case:
             elk_error("Unexpected token %s expected a type", token.location, token.kind)
             return nil, false

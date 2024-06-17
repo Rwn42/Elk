@@ -2,11 +2,19 @@ package backend
 
 import fe"../frontend"
 
-Register :: distinct uint
+Register :: enum {
+    R1,
+    R2,
+    R3,
+    R4,
+    Raddr,
+    Rret,
+}
 
 Opcode :: enum {
     Add,
     Mul,
+    Mov,
     Const,
     Ret,
     Load,
@@ -24,10 +32,18 @@ Instruction :: struct {
     operand_b: Operand,
 }
 
+Expr_Result_Loc :: enum {
+    None,
+    Memory,
+    Parameter,
+    Return,
+}
+
 IR_Context :: struct {
     sm: ^Scope_Manager,
-    register: Register,
+    temporary: Register,
     program: [dynamic]Instruction,
+    static: [dynamic]byte,
     locals_size: int,
 }
 
@@ -49,17 +65,19 @@ setup_ir_state :: proc(using ctx: ^IR_Context, ast_roots: []fe.Elk_Statement) ->
     return true
 }
 
+ctx_use_register :: proc(using ctx: ^IR_Context) -> Register {
+    defer {
+        if temporary == .R4 {
+            temporary = .R1 
+        }else{
+            temporary = Register(int(temporary) + 1)
+        }
+    }
+    return temporary
+}
+
 destory_ir_state :: proc(using ctx: ^IR_Context) {
     scope_close(sm)
 }
 
 
-use_register :: proc(using ctx: ^IR_Context) -> Register {
-    defer register += Register(1)
-    return register
-}
-
-
-free_register :: proc(using ctx: ^IR_Context) {
-    register -= Register(1)
-}

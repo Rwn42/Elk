@@ -65,10 +65,46 @@ compile_file :: proc(filepath: string, sm: ^frontend.String_Manager) -> bool {
     }
 
     for inst in ir_context.program{
-        fmt.println(inst)
+        fmt.printfln("%s: %d %d", inst.opc, inst.operand_a, inst.operand_b)
     }
+
+    test_interpret(ir_context.program[:])
 
     if !ok do panic("backend err")
 
     return true
+}
+
+test_interpret :: proc(program: []backend.Instruction) {
+    registers: [8]int
+    memory: [1028]int
+    for inst in program{
+        using inst
+        switch opc{
+            case .Mov:
+                registers[operand_a.(backend.Register)] = registers[operand_b.(backend.Register)]
+            case .Add:
+                if val, ok := operand_b.(int); ok {
+                    registers[operand_a.(backend.Register)] += val
+                } else{
+                    registers[operand_a.(backend.Register)] += registers[operand_b.(backend.Register)]
+                }   
+            case .Mul:
+                if val, ok := operand_b.(int); ok {
+                    registers[operand_a.(backend.Register)] *= val
+                } else{
+                    registers[operand_a.(backend.Register)] *= registers[operand_b.(backend.Register)]
+                }   
+            case .Const:
+                registers[operand_a.(backend.Register)] = operand_b.(int)
+            case .Store:
+                memory[registers[int(backend.Register.Raddr)]] = registers[operand_a.(backend.Register)]
+            case .Load:
+                registers[operand_b.(backend.Register)] = memory[registers[operand_a.(backend.Register)]]
+            case .Ret:
+
+        }
+    }
+    fmt.println(registers)
+    fmt.println(memory[:32])
 }

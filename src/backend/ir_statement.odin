@@ -5,19 +5,17 @@ import fe"../frontend"
 ctx_generate_stmt :: proc(using ctx: ^IR_Context, node: fe.Elk_Statement) -> bool {
     #partial switch stmt_val in node {
         case fe.Elk_Expression: 
-            _, _, ok := ctx_generate_expression(ctx, stmt_val)
-            return ok
-        case fe.Elk_Return:
-            reg, info, ok := ctx_generate_expression(ctx, fe.Elk_Expression(stmt_val))
-            append(&program, Instruction{.Ret, reg, nil})
+            _, ok := ctx_generate_primary_expression(ctx, stmt_val, .None)
             return ok
         case ^fe.Elk_Variable_Declaration: return ctx_generate_var_decl(ctx, stmt_val^)
-           
+        case fe.Elk_Return:
         case: elk_error("Statement %s not allowed at function scope", node)
     
     }
     return false
 }
+
+
 
 ctx_generate_var_decl :: proc(using ctx: ^IR_Context, decl: fe.Elk_Variable_Declaration) -> bool {
     info: Variable_Info = {stack_offset = locals_size}
@@ -39,12 +37,13 @@ ctx_generate_var_decl :: proc(using ctx: ^IR_Context, decl: fe.Elk_Variable_Decl
             return false
         }
     }
-    reg, type_info := ctx_generate_expression(ctx, ast_expr) or_return
-    defer free_register(ctx)
+
+    append(&program, Instruction{.Const, .Raddr, info.stack_offset})
+
+    type_info := ctx_generate_primary_expression(ctx, ast_expr, .Memory) or_return
 
     info.type_info = type_info
 
-    append(&program, Instruction{.Store, info.stack_offset, reg})
-    scope_register_symbol(sm, Symbol_Info{ast_node = nil, resolution_state = .Resolved, data = info}, name)
+    scope_register_symbol(sm, Symbol_Info{ast_node = nil, resolution_state = .Resolved, data = info}, name) or_return
     return true
 }
